@@ -1,17 +1,32 @@
 package org.broscorp.cryptobot.service;
 
 import lombok.RequiredArgsConstructor;
-import org.broscorp.cryptobot.dto.ApiResponse;
-import org.json.JSONArray;
+import org.broscorp.cryptobot.dto.CurrencyDTO;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
-public class ApiService {
+public class CryptoApiService {
     protected final RestTemplate restTemplate;
 
-    public ApiResponse getJsonFromApi(String apiUrl) {
-        return restTemplate.getForObject(apiUrl, ApiResponse.class);
+    @Value("${api.url}")
+    private String url;
+
+    public List<CurrencyDTO> getListFromApi() {
+        ResponseEntity<List<CurrencyDTO>> responseEntity = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<>() {}
+        );
+
+        return responseEntity.getBody();
     }
 }
