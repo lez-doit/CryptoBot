@@ -9,9 +9,6 @@ import org.broscorp.cryptobot.model.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,14 +31,6 @@ public class CryptoCurrencyService {
         //load current currencies
         currentCurrencies = cryptoApiService.getListFromApi();
         log.info("Loaded {} currencies from api.", currentCurrencies.size());
-
-        //start the bot
-        try {
-            TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
-            telegramBotsApi.registerBot(telegramBot);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException("Couldn't register the bot: " + e.getMessage());
-        }
     }
 
     @Scheduled(initialDelayString = "${api.refresh-rate}000", fixedRateString = "${api.refresh-rate}000")
@@ -54,18 +43,17 @@ public class CryptoCurrencyService {
             User user = users.get(chatId);
             for (CurrencyDTO currency : currentCurrencies) {
                 if (user.getInitState().containsKey(currency.getSymbol())) {
+
                     double oldPrice = user.getInitState().get(currency.getSymbol());
+                    double newPrice = currency.getPrice();
 
-                    double diffPercent = Math.abs(oldPrice - currency.getPrice())
-                            / oldPrice * 100;
-
-                    if (diffPercent > minChangePercent) {
+                    if (significantlyChanged(oldPrice, newPrice)) {
                         telegramBot.sendMessage(chatId,
                                 String.format("Since %s currency %s has changed:\n %s -> %s",
                                         user.getInitTime(),
                                         currency.getSymbol(),
                                         BigDecimal.valueOf(oldPrice).toPlainString(),
-                                        BigDecimal.valueOf(currency.getPrice()).toPlainString()));
+                                        BigDecimal.valueOf(newPrice).toPlainString()));
                     }
                 } else {
                     telegramBot.sendMessage(chatId,
@@ -73,5 +61,9 @@ public class CryptoCurrencyService {
                 }
             }
         }
+    }
+
+    private boolean significantlyChanged(Double oldPrice, Double newPrice) {
+        return Math.abs(oldPrice - newPrice) / oldPrice * 100 > minChangePercent;
     }
 }

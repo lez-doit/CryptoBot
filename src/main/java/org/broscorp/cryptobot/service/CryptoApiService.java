@@ -1,5 +1,6 @@
 package org.broscorp.cryptobot.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.broscorp.cryptobot.dto.CurrencyDTO;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,10 +15,15 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CryptoApiService {
-    protected final RestTemplate restTemplate;
+    private RestTemplate restTemplate;
 
     @Value("${api.url}")
     private String url;
+
+    @PostConstruct
+    private void init() {
+        restTemplate = new RestTemplate();
+    }
 
     public List<CurrencyDTO> getListFromApi() {
         ResponseEntity<List<CurrencyDTO>> responseEntity = restTemplate.exchange(
